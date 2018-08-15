@@ -49,4 +49,4 @@ No license, use this script as you want, feel free to make money out of it. It a
 
 ## Acknowledgments
 
-Thanks to [Refael Ackermann](https://stackoverflow.com/users/27955/refael-ackermann) for the jq parsing I reused here that I found on [StackOverflow](https://stackoverflow.com/questions/39457458/howto-abort-all-incomplete-multipart-uploads-for-a-bucket)
+Thanks to [Refael Ackermann](https://stackoverflow.com/users/27955/refael-ackermann) for the jq parsing I reused here that I found on [StackOverflow](https://stackoverflow.com/a/39457459/10192912)
