@@ -2,7 +2,7 @@
 
 This bash script can be used to find the unaborted multipart files you have that are stucked in all your Amazon S3 buckets (that you are paying storage for but are unusable and not showing in your buckets).
 
-It will exclude today's (using today's date from your system) incomplete multipart to make sure to not delete currently uploading multipart files.
+It will exclude today's (using today's date from your system) incomplete multipart(s) to make sure to not delete currently uploading multipart files.
 
 ### Prerequisites
 
@@ -11,7 +11,7 @@ This script uses the aws-cli from Amazon with your current configuration, you do
 So...
 
  - You need the aws-cli from Amazon.
- - You need to have it already configured and working with your keys.
+ - You need to have aws-cli already configured and working with your keys.
 
 ```
 https://docs.aws.amazon.com/cli/latest/userguide/installing.html
@@ -19,25 +19,25 @@ https://docs.aws.amazon.com/cli/latest/userguide/installing.html
 
 ### Installing
 
-To run this script, jJust git clone this repo, and run the script.
+To run this script, just git clone this repo (or download the script only), and run the script.
 
 ```
 bash abort-s3-multipart.bash
 ```
 
-It will tell you you need an option, run it again using -h (as the output says)
-
-```
-bash abort-s3-multipart.bash -h
-```
-
-Do a "dry-run" to see what would be done (no delete or cleanup will be done, it will only show you what would be done and the commands it would run
+Do a "dry-run" to see what would be done (no abort / cleanup will be done in this mode, it will only show you what would be done and the commands it would run. So you can test a command by yourself instead of having the script do it for you).
 
 ```
 bash abort-s3-multipart.bash -d
 ```
 
-When you are satisfied, either run the commands the script showed you yourself or use the command (from the help -h) to have the script run the commands for you to cleanup (delete) the incomplete multipart upload in Amazon.
+You can also make the script analyze only 1 bucket instead of all of them (still in dry-run mode only)
+
+```
+bash abort-s3-multipart.bash -d -b bucketname
+```
+
+When you are satisfied with what you see and you want the script to cleanup all the stucked multiparts, either run the commands the script showed you by yourself OR use the command -R instead of -d (check explanation from the help -h) to have the script run the commands for you to cleanup (delete) the incomplete multipart(s) upload in Amazon.
 
 ## Authors
 
