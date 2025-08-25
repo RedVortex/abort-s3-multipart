@@ -11,7 +11,7 @@ NC='\033[0m' # No Color -  Reset to default
 trap ctrl_c INT
 
 function ctrl_c() {
-        echo "CTRL-C pressed, aborting..."
+  echo "CTRL-C pressed, aborting..."
   exit 1;
 }
 
@@ -56,13 +56,14 @@ if [[ "$BUCKETS" == "" ]];
 fi
 
 EXCLUDE_DATE="$(date "+%Y-%m-%d")"
+echo -ne "${YELLOW}Excluding ${EXCLUDE_DATE} incomplete multiparts from checks.${NC}\n\n"
 
 for BUCKETNAME in ${BUCKETS}; do
-  echo "Checking bucket $BUCKETNAME for incomplete multiparts excluding those from ${EXCLUDE_DATE}..."
-  aws s3api list-multipart-uploads --bucket $BUCKETNAME  |\
-  jq -r 'try .Uploads[] | "--key \"\(.Key)\" --upload-id \(.UploadId)#\(.Initiated)"' |\
+  echo "Checking bucket $BUCKETNAME..."
+  aws s3api list-multipart-uploads --bucket $BUCKETNAME |\
+  jq -r 'try.Uploads[] | "--key \"" + .Key + "\" --upload-id " + .UploadId + "\t# " + .Initiated' |\
   grep -v ${EXCLUDE_DATE} |\
-  cut -d# -f 1 |\
+  column -t |\
   while read line; do
     if [[ "$doit" == "1" ]]; then
       echo -ne "\t${RED}Aborting incomplete multipart: $(echo $line | cut -d\" -f2)${NC}\n"
