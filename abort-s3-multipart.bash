@@ -1,68 +1,74 @@
 #!/bin/bash
 
+BUCKETS=""
 doit=0
+# SET ANSI Colors to use in output
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color -  Reset to default
 
 trap ctrl_c INT
 
 function ctrl_c() {
         echo "CTRL-C pressed, aborting..."
-	exit 1;
+  exit 1;
 }
 
 show_help () {
 cat << EOF
 Usage:
 
-bash abort-s3-multipart.bash [OPTION]
+bash abort-s3-multipart.bash [OPTION] [-b bucketname]
 
 Options:
 	-d	Dry run (Show what would be done)
 	-R	Really do it, don't just show what would be done
+	-b	Bucket to check, check all buckets if option is absent
 	-h	This help
 EOF
 exit 1
 }
 
-bad_options () {
-echo "Missing or invalid option: use -h for help"
-exit 1
-}
-
-while getopts ":Rdh" opt; do
-    case "$opt" in
+while getopts "Rdhb:" opt; do
+  case "$opt" in
     R)  doit=1
         ;;
     d)  doit=0
+        echo -ne "${YELLOW}Will only list commands to abort multiparts and not delete them since dry run enabled${NC}\n\n"
         ;;
-    \?) bad_options
+    b)  BUCKETS=${OPTARG}
         ;;
-    h)	show_help
+    *) show_help
         ;;
-    esac
+  esac
 done
 
 if [[ "$OPTIND" == "1" ]]; then
-       	bad_options
+  show_help
 fi
 
-echo "Gathering all S3 buckets..."
-BUCKETS="$(aws s3api list-buckets | jq '.Buckets[] | (.Name)' | cut -d\" -f 2)"
-echo "Done!"
+if [[ "$BUCKETS" == "" ]];
+  then
+    echo -ne "Gathering S3 buckets... "
+    BUCKETS="$(aws s3api list-buckets | jq -r '.Buckets[] | (.Name)')"
+    echo -ne "${GREEN}Done!${NC}\n\n"
+fi
+
+EXCLUDE_DATE="$(date "+%Y-%m-%d")"
 
 for BUCKETNAME in ${BUCKETS}; do
-	echo "Checking bucket $BUCKETNAME for incomplete multiparts excluding today's date..."
-	aws s3api list-multipart-uploads --bucket $BUCKETNAME  |\
-	jq -r '.Uploads[] | "--key \"\(.Key)\" --upload-id \(.UploadId)#\(.Initiated)"' |\
-       	grep -v "$(date "+%Y-%m-%d")" |\
-	cut -d# -f 1 |\
-	while read line; do
-    		echo "Found incomplete multipart: $line"
-		if [[ "$doit" == "1" ]]; then
-			echo "Aborting multipart..."
-	      		eval "aws s3api abort-multipart-upload --bucket $BUCKETNAME $line"
-		else
-			echo "Here's the command to abort the multipart (not doing it for you)..."
-			echo "aws s3api abort-multipart-upload --bucket $BUCKETNAME $line"
-		fi
-	done
+  echo "Checking bucket $BUCKETNAME for incomplete multiparts excluding those from ${EXCLUDE_DATE}..."
+  aws s3api list-multipart-uploads --bucket $BUCKETNAME  |\
+  jq -r 'try .Uploads[] | "--key \"\(.Key)\" --upload-id \(.UploadId)#\(.Initiated)"' |\
+  grep -v ${EXCLUDE_DATE} |\
+  cut -d# -f 1 |\
+  while read line; do
+    if [[ "$doit" == "1" ]]; then
+      echo -ne "\t${RED}Aborting incomplete multipart: $(echo $line | cut -d\" -f2)${NC}\n"
+      eval "aws s3api abort-multipart-upload --bucket $BUCKETNAME $line"
+    else
+      echo -ne "\t${RED}aws s3api abort-multipart-upload --bucket $BUCKETNAME $line${NC}\n"
+    fi
+  done
 done
